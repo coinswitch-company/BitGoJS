@@ -5,7 +5,11 @@
   "command": {
     "version": {
       "allowBranch": "rel/*",
-      "message": "chore(release): publish modules"
+      "message": "chore(release): publish modules",
+      "signGitCommit": "true",
+      "signGitTag": "true",
+      "preid": "rc",
+      "tagVersionPrefix": ""
     }
   }
 }
