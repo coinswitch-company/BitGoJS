@@ -10,4 +10,4 @@ COPY --from=builder /tmp/bitgo/modules/express /var/bitgo-express
 ENTRYPOINT ["/sbin/tini", "--"]
 ENV NODE_ENV production
 EXPOSE 3080
-CMD [ "/usr/local/bin/node", "/var/bitgo-express/bin/bitgo-express", "-b", "localhost", "-e", "prod" ]
+CMD [ "/usr/local/bin/node", "/var/bitgo-express/bin/bitgo-express", "-b", "0.0.0.0", "-e", "prod", "--disablessl" ]
