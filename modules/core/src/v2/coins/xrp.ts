@@ -1,21 +1,25 @@
-const BaseCoin = require('../baseCoin');
-const BigNumber = require('bignumber.js');
-const crypto = require('crypto');
+import {
+  BaseCoin,
+  BaseCoinTransactionExplanation,
+} from '../baseCoin';
+import { NodeCallback } from '../types';
+import { BigNumber } from 'bignumber.js';
+import * as crypto from 'crypto';
 const ripple = require('../../ripple');
 const rippleAddressCodec = require('ripple-address-codec');
 const rippleBinaryCodec = require('ripple-binary-codec');
 const rippleHashes = require('ripple-hashes');
 const rippleKeypairs = require('ripple-keypairs');
 import * as _ from 'lodash';
-import * as Promise from 'bluebird';
-const co = Promise.coroutine;
+import * as Bluebird from 'bluebird';
+const co = Bluebird.coroutine;
 const sjcl = require('../../vendor/sjcl.min.js');
-const config = require('../../config');
+import * as config from '../../config';
 import * as url from 'url';
 import * as querystring from 'querystring';
 import { InvalidAddressError, UnexpectedAddressError } from '../../errors';
 import { HDNode, ECPair } from 'bitgo-utxo-lib';
-const prova = require('../../prova');
+import { KeyPair } from '../keychains'
 
 interface AddressDetails {
   address: string;
@@ -38,27 +42,6 @@ interface SignTransactionOptions {
   prv: string;
 }
 
-interface Output {
-  address: string;
-  amount: string;
-}
-
-interface TransactionFee {
-  fee: number;
-  feeRate?: number;
-  size: number
-}
-
-interface TransactionExplanation {
-  displayOrder: string[];
-  id: string;
-  outputs: Output[],
-  changeOutputs: Output[],
-  outputAmount: string;
-  changeAmount: number;
-  fee: TransactionFee;
-}
-
 interface ExplainTransactionOptions {
   txHex: string;
 }
@@ -73,7 +56,7 @@ interface VerifyAddressOptions {
   rootAddress: string;
 }
 
-interface RecoveryInfo extends TransactionExplanation {
+interface RecoveryInfo extends BaseCoinTransactionExplanation {
   txHex: string;
   backupKey?: string;
   coin?: string;
@@ -89,18 +72,21 @@ interface RecoveryOptions {
   krsProvider: string;
 }
 
-interface KeyPair {
-  pub: string;
-  prv: string;
-}
-
 interface HalfSignedTransaction {
   halfSigned: {
     txHex: string
   }
 }
 
-class Xrp extends BaseCoin {
+export class Xrp extends BaseCoin {
+
+  protected constructor(bitgo: any) {
+    super(bitgo);
+  }
+
+  static createInstance(bitgo: any): BaseCoin {
+    return new Xrp(bitgo);
+  }
 
   /**
    * Factor between the coin's base unit and its smallest subdivison
@@ -262,7 +248,7 @@ class Xrp extends BaseCoin {
    * @param keychains
    * @return {*|Request|Promise.<TResult>|{anyOf}}
    */
-  supplementGenerateWallet(walletParams, keychains): Promise<any> {
+  supplementGenerateWallet(walletParams, keychains): Bluebird<any> {
     return co(function *() {
       const { userKeychain, backupKeychain, bitgoKeychain } = keychains;
 
@@ -282,7 +268,7 @@ class Xrp extends BaseCoin {
         if (typeof rootPrivateKey !== 'string' || rootPrivateKey.length !== 64) {
           throw new Error('rootPrivateKey needs to be a hexadecimal private key string');
         }
-        keyPair = prova.ECPair.fromPrivateKeyBuffer(Buffer.from(walletParams.rootPrivateKey, 'hex'));
+        keyPair = ECPair.fromPrivateKeyBuffer(Buffer.from(walletParams.rootPrivateKey, 'hex'));
       }
       const privateKey: Buffer = keyPair.getPrivateKeyBuffer();
       const publicKey: Buffer = keyPair.getPublicKeyBuffer();
@@ -366,43 +352,44 @@ class Xrp extends BaseCoin {
   /**
    * Explain/parse transaction
    * @param params
-   * - txHex: hexadecimal representation of transaction
-   * @returns {{displayOrder: [string,string,string,string,string], id: *, outputs: Array, changeOutputs: Array}}
+   * @param callback
    */
-  public explainTransaction(params: ExplainTransactionOptions): TransactionExplanation {
-    let transaction;
-    let txHex;
-    try {
-      transaction = rippleBinaryCodec.decode(params.txHex);
-      txHex = params.txHex;
-    } catch (e) {
+  explainTransaction(params: ExplainTransactionOptions, callback?: NodeCallback<BaseCoinTransactionExplanation>): Bluebird<BaseCoinTransactionExplanation> {
+    return co(function *() {
+      let transaction;
+      let txHex;
       try {
-        transaction = JSON.parse(params.txHex);
-        txHex = rippleBinaryCodec.encode(transaction);
+        transaction = rippleBinaryCodec.decode(params.txHex);
+        txHex = params.txHex;
       } catch (e) {
-        throw new Error('txHex needs to be either hex or JSON string for XRP');
-      }
-    }
-    const id = rippleHashes.computeBinaryTransactionHash(txHex);
-    const address = transaction.Destination + ((transaction.DestinationTag >= 0) ? '?dt=' + transaction.DestinationTag : '');
-    return {
-      displayOrder: ['id', 'outputAmount', 'changeAmount', 'outputs', 'changeOutputs', 'fee'],
-      id: id,
-      changeOutputs: [],
-      outputAmount: transaction.Amount,
-      changeAmount: 0,
-      outputs: [
-        {
-          address,
-          amount: transaction.Amount
+        try {
+          transaction = JSON.parse(params.txHex);
+          txHex = rippleBinaryCodec.encode(transaction);
+        } catch (e) {
+          throw new Error('txHex needs to be either hex or JSON string for XRP');
         }
-      ],
-      fee: {
-        fee: transaction.Fee,
-        feeRate: null,
-        size: txHex.length / 2
       }
-    };
+      const id = rippleHashes.computeBinaryTransactionHash(txHex);
+      const address = transaction.Destination + ((transaction.DestinationTag >= 0) ? '?dt=' + transaction.DestinationTag : '');
+      return {
+        displayOrder: ['id', 'outputAmount', 'changeAmount', 'outputs', 'changeOutputs', 'fee'],
+        id: id,
+        changeOutputs: [],
+        outputAmount: transaction.Amount,
+        changeAmount: 0,
+        outputs: [
+          {
+            address,
+            amount: transaction.Amount
+          }
+        ],
+        fee: {
+          fee: transaction.Fee,
+          feeRate: null,
+          size: txHex.length / 2
+        }
+      };
+    }).call(this).asCallback(callback);
   }
 
   /**
@@ -413,9 +400,9 @@ class Xrp extends BaseCoin {
    * @param callback
    * @returns {boolean}
    */
-  public verifyTransaction({ txParams, txPrebuild }: VerifyTransactionOptions, callback): Promise<boolean> {
+  public verifyTransaction({ txParams, txPrebuild }: VerifyTransactionOptions, callback): Bluebird<boolean> {
     return co(function *() {
-      const explanation = this.explainTransaction({
+      const explanation = yield this.explainTransaction({
         txHex: txPrebuild.txHex
       });
 
@@ -477,33 +464,33 @@ class Xrp extends BaseCoin {
    * - recoveryDestination: target address to send recovered funds to
    * @param callback
    */
-  public recover(params: RecoveryOptions, callback): Promise<RecoveryInfo | string> {
-    const rippledUrl = this.getRippledUrl();
-    const self = this;
-    const isKrsRecovery = params.backupKey.startsWith('xpub') && !params.userKey.startsWith('xpub');
-    const isUnsignedSweep = params.backupKey.startsWith('xpub') && params.userKey.startsWith('xpub');
+  public recover(params: RecoveryOptions, callback?: NodeCallback<RecoveryInfo | string>): Bluebird<RecoveryInfo | string> {
+    return co(function *explainTransaction() {
+      const rippledUrl = this.getRippledUrl();
+      const isKrsRecovery = params.backupKey.startsWith('xpub') && !params.userKey.startsWith('xpub');
+      const isUnsignedSweep = params.backupKey.startsWith('xpub') && params.userKey.startsWith('xpub');
 
-    return this.initiateRecovery(params)
-    .then(function(keys) {
-      const addressDetailsPromise = self.bitgo.post(rippledUrl)
-      .send({
+      const accountInfoParams = {
         method: 'account_info',
         params: [{
           account: params.rootAddress,
           strict: true,
           ledger_index: 'current',
           queue: true,
-          signer_lists: true
-        }]
+          signer_lists: true,
+        }],
+      };
+
+      const { keys, addressDetails, feeDetails, serverDetails } = yield Bluebird.props({
+        keys: this.initiateRecovery(params),
+        addressDetails: this.bitgo.post(rippledUrl).send(accountInfoParams),
+        feeDetails: this.bitgo.post(rippledUrl).send({ method: 'fee' }),
+        serverDetails: this.bitgo.post(rippledUrl).send({ method: 'server_info' }),
       });
-      const feeDetailsPromise = self.bitgo.post(rippledUrl).send({ method: 'fee' });
-      const serverDetailsPromise = self.bitgo.post(rippledUrl).send({ method: 'server_info' });
-      return [addressDetailsPromise, feeDetailsPromise, serverDetailsPromise, keys];
-    })
-    .spread(function(addressDetails, feeDetails, serverDetails, keys) {
+
       const openLedgerFee = new BigNumber(feeDetails.body.result.drops.open_ledger_fee);
-      const baseReserve = new BigNumber(serverDetails.body.result.info.validated_ledger.reserve_base_xrp).times(self.getBaseFactor());
-      const reserveDelta = new BigNumber(serverDetails.body.result.info.validated_ledger.reserve_inc_xrp).times(self.getBaseFactor());
+      const baseReserve = new BigNumber(serverDetails.body.result.info.validated_ledger.reserve_base_xrp).times(this.getBaseFactor());
+      const reserveDelta = new BigNumber(serverDetails.body.result.info.validated_ledger.reserve_inc_xrp).times(this.getBaseFactor());
       const currentLedger = serverDetails.body.result.info.validated_ledger.seq;
       const sequenceId = addressDetails.body.result.account_data.Sequence;
       const balance = new BigNumber(addressDetails.body.result.account_data.Balance);
@@ -614,22 +601,21 @@ class Xrp extends BaseCoin {
         signedTransaction = rippleLib.combine([userSignature.signedTransaction, backupSignature.signedTransaction]);
       }
 
-      const transactionExplanation = self.explainTransaction({ txHex: signedTransaction.signedTransaction }) as RecoveryInfo;
+      const transactionExplanation = yield this.explainTransaction({ txHex: signedTransaction.signedTransaction }) as RecoveryInfo;
       transactionExplanation.txHex = signedTransaction.signedTransaction;
 
       if (isKrsRecovery) {
         transactionExplanation.backupKey = params.backupKey;
-        transactionExplanation.coin = self.getChain();
+        transactionExplanation.coin = this.getChain();
       }
       return transactionExplanation;
-    })
-    .nodeify(callback);
+    }).call(this).asCallback(callback);
   }
 
   /**
    * Prepare and validate all keychains from the keycard for recovery
    */
-  private initiateRecovery(params: RecoveryOptions): Promise<HDNode[]> {
+  initiateRecovery(params: RecoveryOptions): Bluebird<HDNode[]> {
     return co(function *initiateRecovery() {
       const keys = [];
       const userKey = params.userKey; // Box A
@@ -707,7 +693,4 @@ class Xrp extends BaseCoin {
       prv: extendedKey.toBase58()
     };
   }
-
 }
-
-export = Xrp;

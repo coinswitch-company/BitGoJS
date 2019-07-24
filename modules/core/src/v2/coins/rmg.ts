@@ -1,12 +1,26 @@
-const AbstractUtxoCoin = require('./abstractUtxoCoin');
-const prova = require('../../prova');
+import { hdPath } from '../../bitcoin';
+import { MethodNotImplementedError } from '../../errors';
+import { BaseCoin } from '../baseCoin';
+import {
+  AbstractUtxoCoin, AddressInfo,
+  ExplainTransactionOptions,
+  TransactionExplanation, UnspentInfo,
+} from './abstractUtxoCoin';
+import { NodeCallback } from '../types';
 import * as _ from 'lodash';
+import * as Bluebird from 'bluebird';
+const co = Bluebird.coroutine;
+const prova = require('../../prova');
 
-class Rmg extends AbstractUtxoCoin {
-  constructor(network) {
+export class Rmg extends AbstractUtxoCoin {
+  constructor(bitgo, network?) {
     // TODO: move to bitgo-utxo-lib (BG-6821)
     prova.networks.rmg.coin = 'rmg';
-    super(network || prova.networks.rmg);
+    super(bitgo, network || prova.networks.rmg);
+  }
+
+  static createInstance(bitgo): BaseCoin {
+    return new Rmg(bitgo);
   }
 
   /**
@@ -29,7 +43,7 @@ class Rmg extends AbstractUtxoCoin {
     return 'Royal Mint Gold';
   }
 
-  isValidAddress(address) {
+  isValidAddress(address): boolean {
     return prova.Address.validateBase58(address, this.network);
   }
 
@@ -92,7 +106,8 @@ class Rmg extends AbstractUtxoCoin {
     const keychainCopy = _.cloneDeep(keychains);
     const userKey = keychainCopy.shift();
     const aspKeyIds = keychainCopy.map((key) => key.aspKeyId);
-    const derivedUserKey = prova.HDNode.fromBase58(userKey.pub).hdPath().deriveKey(path).getPublicKeyBuffer();
+    const userKeyNode = prova.HDNode.fromBase58(userKey.pub);
+    const derivedUserKey = hdPath(userKeyNode).deriveKey(path).getPublicKeyBuffer();
 
     const provaAddress = new prova.Address(derivedUserKey, aspKeyIds, this.network);
     provaAddress.signatureCount = signatureThreshold;
@@ -148,14 +163,14 @@ class Rmg extends AbstractUtxoCoin {
     }
 
     const keychain = prova.HDNode.fromBase58(userPrv, this.network);
-    const hdPath = keychain.hdPath();
 
     const signatureIssues = [];
+    const keychainHdPath = hdPath(keychain);
 
     for (let index = 0; index < transaction.ins.length; ++index) {
       const currentUnspent = txPrebuild.txInfo.unspents[index];
       const path = 'm/0/0/' + currentUnspent.chain + '/' + currentUnspent.index;
-      const privKey = hdPath.deriveKey(path);
+      const privKey = keychainHdPath.deriveKey(path);
 
       const currentSignatureIssue: any = {
         inputIndex: index,
@@ -263,53 +278,65 @@ class Rmg extends AbstractUtxoCoin {
     return areAllSignaturesValid;
   }
 
-  explainTransaction(params) {
-    const self = this;
-    const transaction = prova.Transaction.fromHex(params.txHex);
-    const id = transaction.getId();
-    let changeAddresses = [];
-    let spendAmount = 0;
-    let changeAmount = 0;
-    if (params.txInfo && params.txInfo.changeAddresses) {
-      changeAddresses = params.txInfo.changeAddresses;
-    }
-    const explanation: any = {
-      displayOrder: ['id', 'outputAmount', 'changeAmount', 'outputs', 'changeOutputs'],
-      id: id,
-      outputs: [],
-      changeOutputs: []
-    };
-    transaction.outs.forEach(function(currentOutput) {
-      const currentAddress = prova.Address.fromScript(currentOutput.script, self.network).toString();
-      const currentAmount = currentOutput.value;
+  /**
+   * Explain/parse transaction
+   * @param params
+   * @param callback
+   */
+  explainTransaction(params: ExplainTransactionOptions, callback?: NodeCallback<TransactionExplanation>): Bluebird<TransactionExplanation> {
+    return co(function *() {
+      const self = this;
+      const transaction = prova.Transaction.fromHex(params.txHex);
+      const id = transaction.getId();
+      let changeAddresses = [];
+      let spendAmount = 0;
+      let changeAmount = 0;
+      if (params.txInfo && params.txInfo.changeAddresses) {
+        changeAddresses = params.txInfo.changeAddresses;
+      }
+      const explanation: any = {
+        displayOrder: ['id', 'outputAmount', 'changeAmount', 'outputs', 'changeOutputs'],
+        id: id,
+        outputs: [],
+        changeOutputs: []
+      };
+      transaction.outs.forEach(function(currentOutput) {
+        const currentAddress = prova.Address.fromScript(currentOutput.script, self.network).toString();
+        const currentAmount = currentOutput.value;
 
-      if (changeAddresses.indexOf(currentAddress) !== -1) {
-        // this is change
-        changeAmount += currentAmount;
-        explanation.changeOutputs.push({
+        if (changeAddresses.indexOf(currentAddress) !== -1) {
+          // this is change
+          changeAmount += currentAmount;
+          explanation.changeOutputs.push({
+            address: currentAddress,
+            amount: currentAmount
+          });
+          return;
+        }
+
+        spendAmount += currentAmount;
+        explanation.outputs.push({
           address: currentAddress,
           amount: currentAmount
         });
-        return;
-      }
-
-      spendAmount += currentAmount;
-      explanation.outputs.push({
-        address: currentAddress,
-        amount: currentAmount
       });
-    });
-    explanation.outputAmount = spendAmount;
-    explanation.changeAmount = changeAmount;
+      explanation.outputAmount = spendAmount;
+      explanation.changeAmount = changeAmount;
 
-    // add fee info if available
-    if (params.feeInfo) {
-      explanation.displayOrder.push('fee');
-      explanation.fee = params.feeInfo;
-    }
-    return explanation;
+      // add fee info if available
+      if (params.feeInfo) {
+        explanation.displayOrder.push('fee');
+        explanation.fee = params.feeInfo;
+      }
+      return explanation;
+    }).call(this).asCallback(callback);
   }
 
-}
+  protected getAddressInfoFromExplorer(address: string): Bluebird<AddressInfo> {
+    throw new MethodNotImplementedError();
+  }
 
-module.exports = Rmg;
+  protected getUnspentInfoFromExplorer(address: string): Bluebird<UnspentInfo[]> {
+    throw new MethodNotImplementedError();
+  }
+}

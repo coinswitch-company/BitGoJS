@@ -38,8 +38,7 @@ describe('Abstract UTXO Coin:', () => {
     });
 
     it('should classify outputs which spend change back to a v1 wallet base address as internal', co(function *() {
-      sinon.stub(coin, 'explainTransaction')
-      .returns({
+      sinon.stub(coin, 'explainTransaction').resolves({
         outputs: [],
         changeOutputs: [{
           address: wallet._wallet.migratedFrom,
@@ -47,8 +46,7 @@ describe('Abstract UTXO Coin:', () => {
         }]
       });
 
-      sinon.stub(coin, 'verifyAddress')
-      .throws(new errors.UnexpectedAddressError('test error'));
+      sinon.stub(coin, 'verifyAddress').throws(new errors.UnexpectedAddressError('test error'));
 
 
       const parsedTransaction = yield coin.parseTransaction({ txParams: {}, txPrebuild: {}, wallet, verification });
@@ -66,8 +64,7 @@ describe('Abstract UTXO Coin:', () => {
 
     it('should classify outputs which spend to addresses not on the wallet as external', co(function *() {
       const externalAddress = 'external_address';
-      sinon.stub(coin, 'explainTransaction')
-      .returns({
+      sinon.stub(coin, 'explainTransaction').resolves({
         outputs: [{
           address: externalAddress,
           amount: outputAmount
@@ -75,8 +72,7 @@ describe('Abstract UTXO Coin:', () => {
         changeOutputs: []
       });
 
-      sinon.stub(coin, 'verifyAddress')
-      .throws(new errors.UnexpectedAddressError('test error'));
+      sinon.stub(coin, 'verifyAddress').throws(new errors.UnexpectedAddressError('test error'));
 
       const parsedTransaction = yield coin.parseTransaction({ txParams: {}, txPrebuild: {}, wallet, verification });
 
@@ -97,8 +93,7 @@ describe('Abstract UTXO Coin:', () => {
       const outputAmount = 10000;
       const recipients = [];
 
-      sinon.stub(coin, 'explainTransaction')
-      .returns({
+      sinon.stub(coin, 'explainTransaction').resolves({
         outputs: [],
         changeOutputs: [
           {
@@ -133,7 +128,7 @@ describe('Abstract UTXO Coin:', () => {
 
     it('should construct a recovery transaction with segwit unspents', co(function *() {
       const { params, expectedTxHex } = fixtures.recoverBtcSegwitFixtures();
-      recoveryNocks.nockBtcSegwitRecovery();
+      recoveryNocks.nockBtcSegwitRecovery(bitgo);
       const tx = yield coin.recover(params);
       const transaction = utxoLib.Transaction.fromHex(tx.transactionHex);
       transaction.ins.length.should.equal(2);
@@ -144,7 +139,7 @@ describe('Abstract UTXO Coin:', () => {
 
     it('should construct an unsigned recovery transaction for the offline vault', co(function *() {
       const { params, expectedTxHex } = fixtures.recoverBtcUnsignedFixtures();
-      recoveryNocks.nockBtcUnsignedRecovery();
+      recoveryNocks.nockBtcUnsignedRecovery(bitgo);
       const txPrebuild = yield coin.recover(params);
       txPrebuild.txHex.should.equal(expectedTxHex);
       txPrebuild.should.have.property('feeInfo');

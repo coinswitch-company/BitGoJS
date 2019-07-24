@@ -5,9 +5,9 @@ import 'should';
 
 const algoFixtures = require('../../fixtures/algo');
 const co = Promise.coroutine;
-const Wallet = require('../../../../src/v2/wallet');
+import { Wallet } from '../../../../src/v2/wallet';
 const TestV2BitGo = require('../../../lib/test_bitgo');
-const nock = require('nock');
+import * as nock from 'nock';
 
 describe('ALGO:', function() {
   let bitgo;
@@ -24,16 +24,9 @@ describe('ALGO:', function() {
     nock.cleanAll();
   });
 
-  it('should generate a keypair from random seed', function() {
-    const keyPair = basecoin.generateKeyPair();
-    keyPair.should.have.property('pub');
-    keyPair.should.have.property('prv');
-
-    const address = keyPair.pub;
-    basecoin.isValidAddress(address).should.equal(true);
-
-    basecoin.isValidPub(keyPair.pub).should.equal(true);
-    basecoin.isValidPrv(keyPair.prv).should.equal(true);
+  it('should have three key ids before signing', function() {
+    const keyIds = basecoin.keyIdsForSigning();
+    keyIds.length.should.equal(3);
   });
 
   it('should generate a keypair from seed', function() {
@@ -75,7 +68,16 @@ describe('ALGO:', function() {
     const pub = algosdk.Address.decode(keyPair.pub).publicKey;
     algosdk.NaclWrapper.verify(message, signature, pub).should.equal(true);
   });
-  
+
+  it('should validate a stellar seed', function() {
+    basecoin.isStellarSeed('SBMWLNV75BPI2VB4G27RWOMABVRTSSF7352CCYGVELZDSHCXWCYFKXIX').should.ok();
+  });
+
+  it('should convert a stellar seed to an algo seed', function() {
+    const seed = basecoin.convertFromStellarSeed('SBMWLNV75BPI2VB4G27RWOMABVRTSSF7352CCYGVELZDSHCXWCYFKXIX');
+    seed.should.equal('LFS3NP7IL2GVIPBWX4NTTAANMM4URP67OQQWBVJC6I4RYV5QWBKUJUZOCE');
+  });
+
   describe('Transaction Verification', function() {
     let basecoin;
     let wallet;
@@ -90,15 +92,15 @@ describe('ALGO:', function() {
     it('should sign a prebuild', co(function *() {
       // sign transaction
       halfSignedTransaction = yield wallet.signTransaction({
-        txPrebuild: { txData: fixtures.txData },
+        txPrebuild: { 
+          txHex: fixtures.buildTxBase64,
+          keys: [ fixtures.userKeychain.pub, fixtures.backupKeychain.pub, fixtures.bitgoKeychain.pub ],
+          addressVersion: 1,
+        },
         prv: fixtures.userKeychain.prv,
-        keychain: fixtures.userKeychain,
-        backupKeychain: fixtures.backupKeychain,
-        bitgoKeychain: fixtures.bitgoKeychain,
-        wallet: { addressVersion: fixtures.walletData.coinSpecific.addressVersion }
       });
 
-      Buffer.compare(Buffer.from(halfSignedTransaction.halfSigned), fixtures.signedTxBase64).should.equal(0);
+      halfSignedTransaction.halfSigned.txHex.should.equal(fixtures.signedTxBase64);
     }));
   });
 });

@@ -1,32 +1,26 @@
 import 'should';
 
-import * as Promise from 'bluebird';
-const co = Promise.coroutine;
+import * as Bluebird from 'bluebird';
+const co = Bluebird.coroutine;
 
 const TestV2BitGo = require('../../../lib/test_bitgo');
-const stellar = require('../../../../src/v2/coins/xlm');
-const coin = new stellar();
 
-const nock = require('nock');
-nock.enableNetConnect();
+import * as nock from 'nock';
 
-// TODO Enable when the key server is updated to support XLM in test
-xdescribe('XLM:', function() {
+describe('XLM:', function() {
   let bitgo;
   let basecoin;
-  const someWalletId = ''; // todo set to one of the XLM wallets on this account
+  const uninitializedWallet = '5d00475a913edd7d0340fb45728c43e2'; // wallet which has not been initialized on-chain
+  const initializedWallet = '5d0d1fbe957f229b03de7998c2495070'; // wallet which has been correctly initialized on chain
 
   before(function() {
-    bitgo = new TestV2BitGo({ env: 'local' }); // todo set to test
+    nock.restore();
+    bitgo = new TestV2BitGo({ env: 'test' });
     bitgo.initializeTestVars();
     return bitgo.authenticateTestUser(bitgo.testUserOTP())
     .then(function() {
       basecoin = bitgo.coin('txlm');
     });
-  });
-
-  after(function() {
-    nock.cleanAll();
   });
 
   it('Should generate wallet', co(function *() {
@@ -55,7 +49,7 @@ xdescribe('XLM:', function() {
   }));
 
   it('Should generate wallet with custom root address', co(function *() {
-    const keyPair = coin.generateKeyPair();
+    const keyPair = basecoin.generateKeyPair();
     const params = {
       passphrase: TestV2BitGo.V2.TEST_WALLET1_PASSCODE,
       label: 'Stellar Wallet Test',
@@ -82,9 +76,13 @@ xdescribe('XLM:', function() {
     res.bitgoKeychain.should.not.have.property('encryptedPrv');
   }));
 
-  // todo enable when platform changes are available in test
-  xit('should create an XLM address', co(function *() {
-    const wallet = yield basecoin.wallets().get({ id: someWalletId });
+  it('should fail to create an XLM address for a wallet pending on-chain init', co(function *() {
+    const wallet = yield basecoin.wallets().get({ id: uninitializedWallet });
+    yield wallet.createAddress().should.be.rejectedWith('wallet pending on-chain initialization');
+  }));
+
+  it('should create an XLM address for an initialized wallet', co(function *() {
+    const wallet = yield basecoin.wallets().get({ id: initializedWallet });
     const addrObj = yield wallet.createAddress();
     addrObj.should.have.property('address');
     addrObj.should.have.property('wallet');

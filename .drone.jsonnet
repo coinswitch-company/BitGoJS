@@ -70,7 +70,7 @@ local ExcludeBranches(pipeline, excluded_branches=branches()) = pipeline + {
   },
 };
 
-local UploadReports(version, tag="untagged") = {
+local UploadReports(version, tag="untagged", only_changed=false) = {
   name: "upload reports",
   image: "node:"  + version,
   environment: {
@@ -81,9 +81,12 @@ local UploadReports(version, tag="untagged") = {
   commands: [
     "yarn add -s -W --ignore-engines --no-lockfile --ignore-scripts codecov aws-sdk",
     "yarn run artifacts",
-    "yarn run gen-coverage",
+    "yarn run gen-coverage" + (if only_changed then "-changed" else ""),
     "yarn run coverage -F " + tag,
   ],
+  when: {
+    status: ["success", "failure"]
+  }
 };
 
 local UnitTest(version) = {
@@ -93,7 +96,7 @@ local UnitTest(version) = {
     BuildInfo(version),
     Install(version),
     CommandWithSecrets("unit-test-changed", version),
-    UploadReports(version, "unit"),
+    UploadReports(version, "unit", true),
   ],
   trigger: {
     branch: {
@@ -128,13 +131,23 @@ local MeasureSizeAndTiming(version) = {
   ],
 };
 
+local CheckPreconditions(version) = {
+  kind: "pipeline",
+  name: "check preconditions (node:" + version + ")",
+  steps: [
+    BuildInfo(version),
+    Install(version),
+    Command("audit", version),
+    Command("lint", version),
+    Command("check-fmt", version),
+  ]
+};
+
 local UnitVersions = ["6", "8", "10", "11"];
 local IntegrationVersions = ["lts"];
 
 [
-  ExcludeBranches(LernaCommand("lint-changed")),
-  IncludeBranches(LernaCommand("audit")),
-  IncludeBranches(LernaCommand("lint")),
+  CheckPreconditions("lts"),
   IncludeBranches(MeasureSizeAndTiming("lts")),
 ] + [
   ExcludeBranches(UnitTest(version))

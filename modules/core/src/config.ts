@@ -1,5 +1,5 @@
-import common = require('./common');
 import * as _ from 'lodash';
+import { Environments, EnvironmentName } from './v2/environments';
 
 export const tokens = {
   // network name for production environments (prod tokens must be added here)
@@ -31,7 +31,6 @@ export const tokens = {
         { type: 'dgd', coin: 'eth', network: 'Mainnet', name: 'Digix DAO', tokenContractAddress: '0xe0b7927c4af23765cb51314a0e0521a9645f0e2a', decimalPlaces: 9 },
         { type: 'rhoc', coin: 'eth', network: 'Mainnet', name: 'RHOC', tokenContractAddress: '0x168296bb09e24a88805cb9c33356536b980d3fc5', decimalPlaces: 8 },
         { type: 'ae', coin: 'eth', network: 'Mainnet', name: 'Aeternity', tokenContractAddress: '0x5ca9a71b1d01849c0a95490cc00559717fcf0d1d', decimalPlaces: 18 },
-        { type: 'eto', coin: 'eth', network: 'Mainnet', name: 'Ethos Coin', tokenContractAddress: '0x5af2be193a6abca9c8817001f45744777db30756', decimalPlaces: 8 },
         { type: 'zil', coin: 'eth', network: 'Mainnet', name: 'Zilliqa', tokenContractAddress: '0x05f4a42e251f2d52b8ed15e9fedaacfcef1fad27', decimalPlaces: 12 },
         { type: 'iost', coin: 'eth', network: 'Mainnet', name: 'IOSToken', tokenContractAddress: '0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab', decimalPlaces: 18 },
         { type: 'lrc', coin: 'eth', network: 'Mainnet', name: 'loopring', tokenContractAddress: '0xef68e7c694f40c8202821edf525de3782458639f', decimalPlaces: 18 },
@@ -39,7 +38,6 @@ export const tokens = {
         { type: 'wtc', coin: 'eth', network: 'Mainnet', name: 'Walton Token', tokenContractAddress: '0xb7cb1c96db6b22b0d3d9536e0108d062bd488f74', decimalPlaces: 18 },
         { type: 'cennz', coin: 'eth', network: 'Mainnet', name: 'Centrality', tokenContractAddress: '0x1122b6a0e00dce0563082b6e2953f3a943855c1f', decimalPlaces: 18 },
         { type: 'veri', coin: 'eth', network: 'Mainnet', name: 'Veritaseum', tokenContractAddress: '0x8f3470a7388c05ee4e7af3d01d8c722b0ff52374', decimalPlaces: 18 },
-        { type: 'quash', coin: 'eth', network: 'Mainnet', name: 'Qash', tokenContractAddress: '0x618e75ac90b12c6049ba3b27f5d5f8651b0037f6', decimalPlaces: 6 },
         { type: 'drgn', coin: 'eth', network: 'Mainnet', name: 'Dragonchain', tokenContractAddress: '0x419c4db4b9e25d6db2ad9691ccb832c8d9fda05e', decimalPlaces: 18 },
         { type: 'sub', coin: 'eth', network: 'Mainnet', name: 'Substratum', tokenContractAddress: '0x12480e24eb5bec1a9d4369cab6a80cad3c0a377a', decimalPlaces: 2 },
         { type: 'r', coin: 'eth', network: 'Mainnet', name: 'Revain', tokenContractAddress: '0x48f775efbe4f5ece6e0df2f7b5932df56823b990', decimalPlaces: 0 },
@@ -67,7 +65,6 @@ export const tokens = {
         { type: 'auto', coin: 'eth', network: 'Mainnet', name: 'Cube', tokenContractAddress: '0x622dffcc4e83c64ba959530a5a5580687a57581b', decimalPlaces: 18 },
         { type: 'tms', coin: 'eth', network: 'Mainnet', name: 'Time New Bank', tokenContractAddress: '0xf7920b0768ecb20a123fac32311d07d193381d6f', decimalPlaces: 18 },
         { type: 'rlc', coin: 'eth', network: 'Mainnet', name: 'Iexec Rlc', tokenContractAddress: '0x607f4c5bb672230e8672085532f7e901544a7375', decimalPlaces: 9 },
-        { type: 'mco', coin: 'eth', network: 'Mainnet', name: 'Monaco', tokenContractAddress: '0xb63b606ac810a52cca15e44bb630fd42d8d1d83d', decimalPlaces: 8 },
         { type: 'rdn', coin: 'eth', network: 'Mainnet', name: 'Raiden Network', tokenContractAddress: '0x255aa6df07540cb5d3d297f0d0d4d84cb52bc8e6', decimalPlaces: 18 },
         { type: 'abt', coin: 'eth', network: 'Mainnet', name: 'Arcblock', tokenContractAddress: '0xb98d4c97425d9908e66e53a6fdf673acca0be986', decimalPlaces: 18 },
         { type: 'san', coin: 'eth', network: 'Mainnet', name: 'Santiment Network', tokenContractAddress: '0x7c5a0ce9267ed19b22f8cae653f198e3e8daf098', decimalPlaces: 18 },
@@ -226,7 +223,7 @@ export const tokens = {
         { type: 'fet', coin: 'eth', network: 'Mainnet', name: 'Fetch', tokenContractAddress: '0x1d287cc25dad7ccaf76a26bc660c5f7c8e2a05bd', decimalPlaces: 18 },
         { type: 'nas', coin: 'eth', network: 'Mainnet', name: 'Nebulas', tokenContractAddress: '0x5d65d971895edc438f465c17db6992698a52318d', decimalPlaces: 18 },
         { type: 'ht', coin: 'eth', network: 'Mainnet', name: 'Huobi Token', tokenContractAddress: '0x6f259637dcd74c767781e37bc6133cd6a68aa161', decimalPlaces: 18 },
-        { type: 'lgo', coin: 'eth', network: 'Mainnet', name: 'LGO Exchange', tokenContractAddress: '0x123ab195dd38b1b40510d467a6a359b201af056f', decimalPlaces: 8 },
+        { type: 'lgo', coin: 'eth', network: 'Mainnet', name: 'LGO Exchange', tokenContractAddress: '0x0a50c93c762fdd6e56d86215c24aaad43ab629aa', decimalPlaces: 8 },
         { type: 'hydro', coin: 'eth', network: 'Mainnet', name: 'Hydro', tokenContractAddress: '0xebbdf302c940c6bfd49c6b165f457fdb324649bc', decimalPlaces: 18 },
         { type: 'wht', coin: 'eth', network: 'Mainnet', name: 'Whatshalal', tokenContractAddress: '0xae8d4da01658dd0ac118dde60f5b78042d0da7f2', decimalPlaces: 18 },
         { type: 'amn', coin: 'eth', network: 'Mainnet', name: 'Amon', tokenContractAddress: '0x737f98ac8ca59f2c68ad658e3c3d8c8963e40a4c', decimalPlaces: 18 },
@@ -239,6 +236,28 @@ export const tokens = {
         { type: 'kze', coin: 'eth', network: 'Mainnet', name: 'Almeela', tokenContractAddress: '0x8de67d55c58540807601dbf1259537bc2dffc84d', decimalPlaces: 18 },
         { type: 'tiox', coin: 'eth', network: 'Mainnet', name: 'Trade Token X', tokenContractAddress: '0xd947b0ceab2a8885866b9a04a06ae99de852a3d4', decimalPlaces: 18 },
         { type: 'spo', coin: 'eth', network: 'Mainnet', name: 'Sparrow Options', tokenContractAddress: '0x89eafa06d99f0a4d816918245266800c9a0941e0', decimalPlaces: 18 },
+        { type: 'pdata', coin: 'eth', network: 'Mainnet', name: 'Opiria Token', tokenContractAddress: '0x0db03b6cde0b2d427c64a04feafd825938368f1f', decimalPlaces: 18 },
+        { type: 'cro', coin: 'eth', network: 'Mainnet', name: 'Crypto.com Chain', tokenContractAddress: '0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b', decimalPlaces: 8 },
+        { type: 'drpu', coin: 'eth', network: 'Mainnet', name: 'DRP Utility', tokenContractAddress: '0xe30e02f049957e2a5907589e06ba646fb2c321ba', decimalPlaces: 8 },
+        { type: 'prdx', coin: 'eth', network: 'Mainnet', name: 'PRDX Token', tokenContractAddress: '0xe17900f23b7ebb2791f25f1eaa63d8f5e603e9a5', decimalPlaces: 9 },
+        { type: 'tenx', coin: 'eth', network: 'Mainnet', name: 'TenX Token', tokenContractAddress: '0x515ba0a2e286af10115284f151cf398688a69170', decimalPlaces: 18 },
+        { type: 'roobee', coin: 'eth', network: 'Mainnet', name: 'ROOBEE', tokenContractAddress: '0xa31b1767e09f842ecfd4bc471fe44f830e3891aa', decimalPlaces: 18 },
+        { type: 'orbs', coin: 'eth', network: 'Mainnet', name: 'Orbs Token', tokenContractAddress: '0xff56cc6b1e6ded347aa0b7676c85ab0b3d08b0fa', decimalPlaces: 18 },
+        { type: 'vdx', coin: 'eth', network: 'Mainnet', name: 'Vodi X', tokenContractAddress: '0x91e64f39c1fe14492e8fdf5a8b0f305bd218c8a1', decimalPlaces: 18 },
+        { type: 'shr', coin: 'eth', network: 'Mainnet', name: 'ShareToken', tokenContractAddress: '0xee5fe244406f35d9b4ddb488a64d51456630befc', decimalPlaces: 2 },
+        { type: 'mco', coin: 'eth', network: 'Mainnet', name: 'Crypto.com', tokenContractAddress: '0xb63b606ac810a52cca15e44bb630fd42d8d1d83d', decimalPlaces: 8 },
+        { type: 'leo', coin: 'eth', network: 'Mainnet', name: 'Bitfinex LEO', tokenContractAddress: '0x2af5d2ad76741191d15dfe7bf6ac92d4bd912ca3', decimalPlaces: 18 },
+        { type: 'crep', coin: 'eth', network: 'Mainnet', name: 'Compound Augur', tokenContractAddress: '0x158079ee67fce2f58472a96584a73c7ab9ac95c1', decimalPlaces: 8 },
+        { type: 'cbat', coin: 'eth', network: 'Mainnet', name: 'Compound BAT', tokenContractAddress: '0x6c8c6b02e7b2be14d4fa6022dfd6d75921d90e4e', decimalPlaces: 8 },
+        { type: 'czrx', coin: 'eth', network: 'Mainnet', name: 'Compound ZRX', tokenContractAddress: '0xb3319f5d18bc0d84dd1b4825dcde5d5f7266d407', decimalPlaces: 8 },
+        { type: 'cusdc', coin: 'eth', network: 'Mainnet', name: 'Compound USDC', tokenContractAddress: '0x39aa39c021dfbae8fac545936693ac917d5e7563', decimalPlaces: 8 },
+        { type: 'cdai', coin: 'eth', network: 'Mainnet', name: 'Compound DAI', tokenContractAddress: '0xf5dce57282a584d2746faf1593d3121fcac444dc', decimalPlaces: 8 },
+        { type: 'ceth', coin: 'eth', network: 'Mainnet', name: 'Compound Ether', tokenContractAddress: '0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5', decimalPlaces: 8 },
+        { type: 'valor', coin: 'eth', network: 'Mainnet', name: 'ValorToken', tokenContractAddress: '0x297e4e5e59ad72b1b0a2fd446929e76117be0e0a', decimalPlaces: 18 },
+        { type: 'thkd', coin: 'eth', network: 'Mainnet', name: 'TrueHKD', tokenContractAddress: '0x0000852600ceb001e08e00bc008be620d60031f2', decimalPlaces: 18 },
+        { type: 'tcad', coin: 'eth', network: 'Mainnet', name: 'TrueCAD', tokenContractAddress: '0x00000100f2a2bd000715001920eb70d229700085', decimalPlaces: 18 },
+        { type: 'edn', coin: 'eth', network: 'Mainnet', name: 'Eden', tokenContractAddress: '0x05860d453c7974cbf46508c06cba14e211c629ce', decimalPlaces: 18 },
+        { type: 'emx', coin: 'eth', network: 'Mainnet', name: 'EMX', tokenContractAddress: '0x75a29c405bd5ab2f3b35144af937ee98d390b5ee', decimalPlaces: 18 },
       ]
     },
     ofc: {
@@ -265,10 +284,11 @@ export const tokens = {
       tokens: [
         { type: 'ofctusd', coin: 'ofc', decimalPlaces: 2, name: 'Offchain Test USD', backingCoin: 'tsusd', isFiat: true },
         { type: 'ofctbtc', coin: 'ofc', decimalPlaces: 8, name: 'Offchain Bitcoin Test', backingCoin: 'tbtc' },
-        { type: 'ofcteth', coin: 'ofc', decimalPlaces: 18, name: 'Offchain Ether Testnet', backingCoin: 'teth' }
+        { type: 'ofcteth', coin: 'ofc', decimalPlaces: 18, name: 'Offchain Ether Testnet', backingCoin: 'teth' },
+        { type: 'ofctltc', coin: 'ofc', decimalPlaces: 8, name: 'Offchain Litecoin Testnet', backingCoin: 'tltc' },
       ]
     }
-  }
+  },
 };
 
 export const mainnetTokens = {};
@@ -339,12 +359,18 @@ export const krsProviders = {
 export const bitcoinAverageBaseUrl = 'https://apiv2.bitcoinaverage.com/indices/local/ticker/';
 
 // TODO: once server starts returning eth address keychains, remove bitgoEthAddress
-export const defaultConstants = (env) => {
-
-  if (common.Environments[env] === undefined) {
+/**
+ * Get the default (hardcoded) constants for a particular network.
+ *
+ * Note that this may not be the complete set of constants, and additional constants may get fetched
+ * from BitGo during the lifespan of a BitGo object.
+ * @param env
+ */
+export const defaultConstants = (env: EnvironmentName) => {
+  if (Environments[env] === undefined) {
     throw Error(`invalid environment ${env}`);
   }
 
-  const network = common.Environments[env].network;
+  const network = Environments[env].network;
   return _.merge({}, defaults, tokens[network]);
 };
