@@ -1,6 +1,13 @@
-const BaseCoin = require('../baseCoin');
+/**
+ * @prettier
+ */
+import { BaseCoin } from '../baseCoin';
+import { MethodNotImplementedError } from '../../errors';
 
-class Susd extends BaseCoin {
+export class Susd extends BaseCoin {
+  static createInstance(bitgo: any): BaseCoin {
+    return new Susd(bitgo);
+  }
 
   /**
    * Returns the factor between the base unit and its smallest subdivison
@@ -28,6 +35,8 @@ class Susd extends BaseCoin {
   isValidMofNSetup({ m, n }) {
     return m === 0 && n === 0;
   }
-}
 
-export = Susd;
+  isValidAddress(address: string): boolean {
+    throw new MethodNotImplementedError();
+  }
+}

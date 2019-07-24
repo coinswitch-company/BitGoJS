@@ -1,4 +1,10 @@
-// File for internal functions
+/**
+ * @prettier
+ */
+import * as Bluebird from 'bluebird';
+import { BaseCoin } from './baseCoin';
+
+const co = Bluebird.coroutine;
 
 /**
  * Internal function to centralize this route for wallet-scoped and enterprise-scoped queries
@@ -8,28 +14,39 @@
  * @param bitgo The BitGo object
  * @returns result of the query
  */
-exports.getFirstPendingTransaction = function(params, baseCoin, bitgo) {
-  // These errors should never happen when this is called from wallet.js or enterprise.js
-  if (!baseCoin) {
-    throw new Error('Must provide baseCoin');
-  }
-  if (!bitgo) {
-    throw new Error('Must provide BitGo object');
-  }
-  if (!params.walletId && !params.enterpriseId) {
-    throw new Error('Must provide either walletId or enterpriseId');
-  }
-  return bitgo.get(baseCoin.url('/tx/pending/first'))
-  .query(params)
-  .result();
-};
+export function getFirstPendingTransaction(
+  params: { walletId?: string; enterpriseId?: string },
+  baseCoin: BaseCoin,
+  bitgo: any
+): Bluebird<any> {
+  return co(function*() {
+    // These errors should never happen when this is called from wallet.js or enterprise.js
+    if (!baseCoin) {
+      throw new Error('Must provide baseCoin');
+    }
+    if (!bitgo) {
+      throw new Error('Must provide BitGo object');
+    }
+    if (!params.walletId && !params.enterpriseId) {
+      throw new Error('Must provide either walletId or enterpriseId');
+    }
+    return bitgo
+      .get(baseCoin.url('/tx/pending/first'))
+      .query(params)
+      .result();
+  }).call(this);
+}
 
-// convert a 4 element Uint8Array to a 4 byte Number
-exports.bytesToWord = (bytes) => {
+/**
+ * convert a 4 element Uint8Array to a 4 byte Number
+ *
+ * @param bytes
+ * @return 4 byte number
+ */
+export function bytesToWord(bytes: Uint8Array): number {
   if (!(bytes instanceof Uint8Array) || bytes.length !== 4) {
     throw new Error('bytes must be a Uint8Array with length 4');
   }
 
   return bytes.reduce((num, byte) => num * 0x100 + byte, 0);
-};
-
+}

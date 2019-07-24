@@ -1,15 +1,14 @@
-import { strict as assert } from 'assert';
-const crypto = require('crypto');
-const stellar = require('stellar-sdk');
-import * as Promise from 'bluebird';
-const co = Promise.coroutine;
-const Wallet = require('../../../../src/v2/wallet');
-
 import 'should';
+import * as crypto from 'crypto';
+import * as stellar from 'stellar-sdk';
+import * as Bluebird from 'bluebird';
+const co = Bluebird.coroutine;
+
+import { Wallet } from '../../../../src/v2/wallet';
 
 const TestV2BitGo = require('../../../lib/test_bitgo');
 
-const nock = require('nock');
+import * as nock from 'nock';
 nock.enableNetConnect();
 
 describe('XLM:', function() {
@@ -24,34 +23,6 @@ describe('XLM:', function() {
 
   after(function() {
     nock.cleanAll();
-  });
-
-  it('should generate a keypair from random seed', function() {
-    const keyPair = basecoin.generateKeyPair();
-    keyPair.should.have.property('pub');
-    keyPair.should.have.property('prv');
-
-    const address = keyPair.pub;
-    basecoin.isValidAddress(address).should.equal(true);
-
-    basecoin.isValidPub(keyPair.pub).should.equal(true);
-    basecoin.isValidPrv(keyPair.prv).should.equal(true);
-  });
-
-  it('should generate a keypair from seed', function() {
-    const seed = crypto.randomBytes(32);
-    const keyPair = basecoin.generateKeyPair(seed);
-    keyPair.should.have.property('pub');
-    keyPair.should.have.property('prv');
-
-    const address = keyPair.pub;
-    basecoin.isValidAddress(address).should.equal(true);
-
-    basecoin.isValidPub(keyPair.pub).should.equal(true);
-    basecoin.isValidPrv(keyPair.prv).should.equal(true);
-
-    const secret = keyPair.prv;
-    stellar.StrKey.encodeEd25519SecretSeed(seed).should.equal(secret);
   });
 
   it('should validate address', function() {
@@ -109,22 +80,22 @@ describe('XLM:', function() {
     }).should.throw();
   });
 
-  it('Should be able to explain an XLM transaction', function() {
-    const signedExplanation = basecoin.explainTransaction({ txBase64: 'AAAAAMDHAbd3O7B2auR1e+EH/LRKe8IcQBOF+XP2lOxWi1PfAAAB9AAEvJEAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAABAAAAB1RFU1RJTkcAAAAAAQAAAAAAAAABAAAAALgEl4p84728zfXtl/JdOsx3QbI97mcybqcXdfgdv54zAAAAAAAAAAEqBfIAAAAAAAAAAAFWi1PfAAAAQDoqo7juOBZawMlk8znIbYqSKemjgmINosp/P4+0SFGo/xJy1YgD6YEc65aWuyBxucFFBXCSlAxP2Z7nPMyjewM=' });
+  it('Should be able to explain an XLM transaction', co(function *() {
+    const signedExplanation = yield basecoin.explainTransaction({ txBase64: 'AAAAAMDHAbd3O7B2auR1e+EH/LRKe8IcQBOF+XP2lOxWi1PfAAAB9AAEvJEAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAABAAAAB1RFU1RJTkcAAAAAAQAAAAAAAAABAAAAALgEl4p84728zfXtl/JdOsx3QbI97mcybqcXdfgdv54zAAAAAAAAAAEqBfIAAAAAAAAAAAFWi1PfAAAAQDoqo7juOBZawMlk8znIbYqSKemjgmINosp/P4+0SFGo/xJy1YgD6YEc65aWuyBxucFFBXCSlAxP2Z7nPMyjewM=' });
     signedExplanation.outputAmount.should.equal('5000000000');
     signedExplanation.fee.fee.should.equal('500');
     signedExplanation.memo.value.should.equal('TESTING');
     signedExplanation.memo.type.should.equal('text');
     signedExplanation.changeOutputs.length.should.equal(0);
     signedExplanation.changeAmount.should.equal('0');
-    const unsignedExplanation = basecoin.explainTransaction({ txBase64: 'AAAAAMDHAbd3O7B2auR1e+EH/LRKe8IcQBOF+XP2lOxWi1PfAAAAZAAEvJEAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAEAAAABAAAAAAAAAAEAAAAAuASXinzjvbzN9e2X8l06zHdBsj3uZzJupxd1+B2/njMAAAAAAAAAAlQL5AAAAAAAAAAAAA==' });
+    const unsignedExplanation = yield basecoin.explainTransaction({ txBase64: 'AAAAAMDHAbd3O7B2auR1e+EH/LRKe8IcQBOF+XP2lOxWi1PfAAAAZAAEvJEAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAEAAAABAAAAAAAAAAEAAAAAuASXinzjvbzN9e2X8l06zHdBsj3uZzJupxd1+B2/njMAAAAAAAAAAlQL5AAAAAAAAAAAAA==' });
     unsignedExplanation.outputAmount.should.equal('10000000000');
     unsignedExplanation.fee.fee.should.equal('100');
     unsignedExplanation.memo.value.should.equal('1');
     unsignedExplanation.memo.type.should.equal('id');
     unsignedExplanation.changeOutputs.length.should.equal(0);
     unsignedExplanation.changeAmount.should.equal('0');
-  });
+  }));
 
   it('isValidMemoId should work', function() {
     basecoin.isValidMemo({ value: '1', type: 'id' }).should.equal(true);
@@ -568,5 +539,46 @@ describe('XLM:', function() {
       });
     });
   });
-});
 
+  describe('Keypairs:', () => {
+    it('should generate a keypair from random seed', function() {
+      const keyPair = basecoin.generateKeyPair();
+      keyPair.should.have.property('pub');
+      keyPair.should.have.property('prv');
+
+      const address = keyPair.pub;
+      basecoin.isValidAddress(address).should.equal(true);
+
+      basecoin.isValidPub(keyPair.pub).should.equal(true);
+      basecoin.isValidPrv(keyPair.prv).should.equal(true);
+    });
+
+    it('should generate a keypair from seed', function() {
+      const seed = crypto.randomBytes(32);
+      const keyPair = basecoin.generateKeyPair(seed);
+      keyPair.should.have.property('pub');
+      keyPair.should.have.property('prv');
+
+      const address = keyPair.pub;
+      basecoin.isValidAddress(address).should.equal(true);
+
+      basecoin.isValidPub(keyPair.pub).should.equal(true);
+      basecoin.isValidPrv(keyPair.prv).should.equal(true);
+
+      const secret = keyPair.prv;
+      stellar.StrKey.encodeEd25519SecretSeed(seed).should.equal(secret);
+    });
+
+    it('should deterministically derive a child key from master seed and entropy seed', () => {
+      const seed = Buffer.alloc(32).fill(0).toString('hex');
+      const masterSeed = '0x01020304050607080910111213141516171819202122232425262728293031';
+
+      const derivedKey = basecoin.deriveKeyWithSeed({ key: masterSeed, seed, });
+
+      derivedKey.should.have.properties({
+        key: 'GCJR3ORBWOKGFA3FTGYDDQVFEEMCYXFHY6KAUOTU4MQMFHK4LLSWWGLW',
+        derivationPath: 'm/999999\'/230673453\'/206129755\'',
+      });
+    });
+  });
+});
